@@ -181,10 +181,24 @@ from customtkinter import *
 from time import sleep
 import sys
 import threading
+import datetime
+
+
+def time_decorator(fn):
+    def inner(*args, **kwargs):
+        t1 = datetime.datetime.now()
+        print('Время начала работы:', t1)
+        res = fn(*args, **kwargs)
+        t2 = datetime.datetime.now()
+        print('Время завершения работы:', t2)
+        print('Время выполнения:', t2 - t1)
+        return res
+    return inner
 
 
 class IotMock:
     @staticmethod
+    @time_decorator
     def scanning2(model, attack):
         print('starting...', model, attack)
         for i in range(3):
@@ -205,7 +219,7 @@ class TextRedirector:
     def write(self, str):
         self.output += str
         self.widget.configure(state="normal")
-        self.widget.insert("end", str)
+        self.widget.insert(END, str)
         self.widget.configure(state="disabled")
 
     def flush(self):
@@ -243,41 +257,31 @@ class App(CTk):
     def __init__(self):
         super().__init__()
         self.title('IOT GUI')
-        # self.resizable(True, True)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=2)
-        self.rowconfigure(0, weight=1)
 
-        self.left_frame = CTkFrame(self)
-        CTkLabel(self.left_frame, text='Лог:').grid(row=0, column=0)
-        self.text = CTkTextbox(self.left_frame)
-        self.text.grid(row=1, column=0)
-        self.left_frame.grid(row=0, column=0)
-
-        self.right_frame = CTkFrame(self)
-        CTkLabel(self.right_frame, text='Выбор атаки:').grid(row=0, column=0)
-        CTkOptionMenu(self.right_frame,
+        CTkLabel(self, text='Выбор атаки:').grid(row=0, column=0)
+        CTkOptionMenu(self,
                       values=self.attacks,
                       command=lambda choice: self.choose_attack(choice),
                       fg_color=self.color,
-                      button_color=self.color).grid(row=1, column=0)
-        CTkLabel(self.right_frame, text='Выбор метода:').grid(row=2, column=0)
-        CTkOptionMenu(self.right_frame,
+                      button_color=self.color).grid(row=1, column=0, padx=10, pady=10)
+        CTkLabel(self, text='Выбор метода:').grid(row=2, column=0)
+        CTkOptionMenu(self,
                       values=self.methods,
                       command=lambda choice: self.choose_method(choice),
                       fg_color=self.color,
-                      button_color=self.color).grid(row=3, column=0)
-        CTkLabel(self.right_frame, text='').grid(row=4, column=1)
-        CTkButton(self.right_frame, text='Сохранить лог', )
-        CTkButton(self.right_frame, text='Start', command=self.run, fg_color=self.color).grid(row=5, column=0)
-
-        self.right_frame.grid(row=0, column=1)
+                      button_color=self.color).grid(row=3, column=0, padx=10, pady=10)
+        CTkButton(self, text='Сохранить лог', command=self.save_log, fg_color=self.color).grid(row=5, column=0, padx=10, pady=10)
+        CTkButton(self, text='Обнаружение атак на IoT', command=self.run, fg_color=self.color).grid(row=6, column=0, padx=10, pady=10)
+        CTkLabel(self, text='Лог:').grid(row=7, column=0)
+        self.text = CTkTextbox(self)
+        self.text.grid(row=8, column=0)
         self.redirect = TextRedirector(self.text, "stdout")
         sys.stdout = self.redirect
 
     def save_log(self):
         with open('log.txt', 'w') as file:
             file.write(self.redirect.output)
+        print('Сохранено!')
 
     def run(self):
         threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method, self.attack)).start()
