@@ -10,6 +10,11 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
+from customtkinter import *
+from time import sleep
+import sys
+import threading
+import datetime
 
 
 class IOT:
@@ -177,14 +182,8 @@ class IOT:
             self.scanning2(model)
 
 
-from customtkinter import *
-from time import sleep
-import sys
-import threading
-import datetime
-
-
 def time_decorator(fn):
+    """Time calculator decorator."""
     def inner(*args, **kwargs):
         t1 = datetime.datetime.now()
         print('Время начала работы:', t1)
@@ -197,9 +196,12 @@ def time_decorator(fn):
 
 
 class IotMock:
+    """Mock for IOT class."""
+
     @staticmethod
     @time_decorator
     def scanning2(model, attack):
+        """scanning2 mock function."""
         print('starting...', model, attack)
         for i in range(3):
             sleep(1)
@@ -248,40 +250,31 @@ class App(CTk):
     ]
     method = methods[0]
 
-    iot = IotMock()
+    iot = IOT()
 
-    height = 600
-    width = 600
     color = '#522878'
 
     def __init__(self):
         super().__init__()
         self.title('IOT GUI')
 
-        CTkLabel(self, text='Выбор атаки:').grid(row=0, column=0)
+        CTkLabel(self, text='Выбор атаки:').grid(row=0, column=1)
         CTkOptionMenu(self,
                       values=self.attacks,
                       command=lambda choice: self.choose_attack(choice),
                       fg_color=self.color,
-                      button_color=self.color).grid(row=1, column=0, padx=10, pady=10)
-        CTkLabel(self, text='Выбор метода:').grid(row=2, column=0)
+                      button_color=self.color).grid(row=1, column=1, padx=10, pady=10)
+        CTkLabel(self, text='Выбор метода:').grid(row=2, column=1)
         CTkOptionMenu(self,
                       values=self.methods,
                       command=lambda choice: self.choose_method(choice),
                       fg_color=self.color,
-                      button_color=self.color).grid(row=3, column=0, padx=10, pady=10)
-        CTkButton(self, text='Сохранить лог', command=self.save_log, fg_color=self.color).grid(row=5, column=0, padx=10, pady=10)
-        CTkButton(self, text='Обнаружение атак на IoT', command=self.run, fg_color=self.color).grid(row=6, column=0, padx=10, pady=10)
-        CTkLabel(self, text='Лог:').grid(row=7, column=0)
-        self.text = CTkTextbox(self)
-        self.text.grid(row=8, column=0)
+                      button_color=self.color).grid(row=3, column=1, padx=10, pady=10)
+        CTkButton(self, text='Обнаружение атак на IoT', command=self.run, fg_color=self.color).grid(row=4, column=1, padx=10, pady=10)
+        self.text = CTkTextbox(self, width=400, height=400)
+        self.text.grid(row=0, column=0, rowspan=5)
         self.redirect = TextRedirector(self.text, "stdout")
         sys.stdout = self.redirect
-
-    def save_log(self):
-        with open('log.txt', 'w') as file:
-            file.write(self.redirect.output)
-        print('Сохранено!')
 
     def run(self):
         threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method, self.attack)).start()
