@@ -143,7 +143,7 @@ class IOT:
             scaler.fit(pd.read_csv(self.DATASET_DIRECTORY + train_set)[self.X_columns])
         return scaler
 
-    def scanning2(self, model):
+    def scanning2(self, model, mass):
         y_pred = []
         y_test = []
         scaler = StandardScaler()
@@ -153,7 +153,7 @@ class IOT:
         for train_set in tqdm(self.training_sets):
             d = pd.read_csv(self.DATASET_DIRECTORY + train_set)
             d[self.X_columns] = scaler.transform(d[self.X_columns])
-            new_y = [self.dict_2classes[k] for k in d[self.y_column]]
+            new_y = [mass[k] for k in d[self.y_column]]
             d[self.y_column] = new_y
 
             model.fit(d[self.X_columns], d[self.y_column])
@@ -161,10 +161,10 @@ class IOT:
         for test_set in tqdm(self.test_sets):
             d_test = pd.read_csv(self.DATASET_DIRECTORY + test_set)
             d_test[self.X_columns] = scaler.transform(d_test[self.X_columns])
-            new_y = [self.dict_2classes[k] for k in d_test[self.y_column]]
+            new_y = [mass[k] for k in d_test[self.y_column]]
             d_test[self.y_column] = new_y
-            y_test = list(d_test[self.y_column].values)
-            y_pred = list(model.predict(d_test[self.X_columns]))
+            y_test += list(d_test[self.y_column].values)
+            y_pred += list(model.predict(d_test[self.X_columns]))
 
         self.metrics(model, y_pred, y_test)
 
@@ -176,10 +176,6 @@ class IOT:
         print('recall_score: ', recall_score(y_pred, y_test, average='macro'))
         print('precision_score: ', precision_score(y_pred, y_test, average='macro'))
         print('f1_score: ', f1_score(y_pred, y_test, average='macro'))
-
-    def run(self):
-        for num, model in enumerate(self.models, start=0):
-            self.scanning2(model)
 
 
 def time_decorator(fn):
@@ -216,10 +212,8 @@ class TextRedirector:
     def __init__(self, widget, tag="stdout"):
         self.widget = widget
         self.tag = tag
-        self.output = ''
 
     def write(self, str):
-        self.output += str
         self.widget.configure(state="normal")
         self.widget.insert(END, str)
         self.widget.configure(state="disabled")
@@ -257,6 +251,23 @@ class App(CTk):
     def __init__(self):
         super().__init__()
         self.title('IOT GUI')
+        self.attacks_sel = {
+            "DOS": self.iot.DoS,
+            "DDOS": self.iot.DDoS,
+            "Mirai": self.iot.Mirai,
+            "Recon": self.iot.Recon,
+            "BruteForce": self.iot.BruteForce,
+            "Web": self.iot.Web,
+            "Spoofing": self.iot.Spoofing,
+        }
+        self.method_sel = {
+            "Логистическая регрессия": LogisticRegression(n_jobs=-1),
+            "К - ближайших соседей": KNeighborsClassifier(n_neighbors=3),
+            "Дерево принятия решений": DecisionTreeClassifier(),
+            "Метод случайного леса": RandomForestClassifier(),
+            "Метод опорных векторов": SVC(gamma='auto'),
+            "Наивная гауссовская классификация": GaussianNB()
+        }
 
         CTkLabel(self, text='Выбор атаки:').grid(row=0, column=1)
         CTkOptionMenu(self,
@@ -277,7 +288,7 @@ class App(CTk):
         sys.stdout = self.redirect
 
     def run(self):
-        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method, self.attack)).start()
+        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method_sel[self.method], self.attacks_sel[self.attack])).start()
 
     def choose_attack(self, choice):
         self.attack = choice
