@@ -11,10 +11,8 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
 from customtkinter import *
-from time import sleep
 import sys
 import threading
-import datetime
 
 
 class IOT:
@@ -143,22 +141,27 @@ class IOT:
             scaler.fit(pd.read_csv(self.DATASET_DIRECTORY + train_set)[self.X_columns])
         return scaler
 
-    def scanning2(self, model, mass):
+    def scanning2(self, model, mass, event: threading.Event):
         y_pred = []
         y_test = []
         scaler = StandardScaler()
         for train_set in tqdm(self.training_sets):
+            if event.is_set():
+                return
             scaler.fit(pd.read_csv(self.DATASET_DIRECTORY + train_set)[self.X_columns])
 
         for train_set in tqdm(self.training_sets):
+            if event.is_set():
+                return
             d = pd.read_csv(self.DATASET_DIRECTORY + train_set)
             d[self.X_columns] = scaler.transform(d[self.X_columns])
             new_y = [mass[k] for k in d[self.y_column]]
             d[self.y_column] = new_y
-
             model.fit(d[self.X_columns], d[self.y_column])
 
         for test_set in tqdm(self.test_sets):
+            if event.is_set():
+                return
             d_test = pd.read_csv(self.DATASET_DIRECTORY + test_set)
             d_test[self.X_columns] = scaler.transform(d_test[self.X_columns])
             new_y = [mass[k] for k in d_test[self.y_column]]
@@ -176,35 +179,6 @@ class IOT:
         print('recall_score: ', recall_score(y_pred, y_test, average='macro'))
         print('precision_score: ', precision_score(y_pred, y_test, average='macro'))
         print('f1_score: ', f1_score(y_pred, y_test, average='macro'))
-
-
-def time_decorator(fn):
-    """Time calculator decorator."""
-    def inner(*args, **kwargs):
-        t1 = datetime.datetime.now()
-        print('Время начала работы:', t1)
-        res = fn(*args, **kwargs)
-        t2 = datetime.datetime.now()
-        print('Время завершения работы:', t2)
-        print('Время выполнения:', t2 - t1)
-        return res
-    return inner
-
-
-class IotMock:
-    """Mock for IOT class."""
-
-    @staticmethod
-    @time_decorator
-    def scanning2(model, attack):
-        """scanning2 mock function."""
-        print('starting...', model, attack)
-        for i in range(3):
-            sleep(1)
-            print(i)
-        print('doing...')
-        sleep(1)
-        print('done!')
 
 
 class TextRedirector:
@@ -250,7 +224,7 @@ class App(CTk):
 
     def __init__(self):
         super().__init__()
-        self.title('IOT GUI')
+        self.title('Обнаружение атак на IoT')
         self.attacks_sel = {
             "DOS": self.iot.DoS,
             "DDOS": self.iot.DDoS,
@@ -281,14 +255,24 @@ class App(CTk):
                       command=lambda choice: self.choose_method(choice),
                       fg_color=self.color,
                       button_color=self.color).grid(row=3, column=1, padx=10, pady=10)
-        CTkButton(self, text='Обнаружение атак на IoT', command=self.run, fg_color=self.color).grid(row=4, column=1, padx=10, pady=10)
+        self.start_button = CTkButton(self, text='Start', command=self.run, fg_color=self.color)
+        self.start_button.grid(row=4, column=1, padx=10, pady=10)
+        self.event = threading.Event()
+
         self.text = CTkTextbox(self, width=400, height=400)
         self.text.grid(row=0, column=0, rowspan=5)
         self.redirect = TextRedirector(self.text, "stdout")
         sys.stdout = self.redirect
+        sys.stderr = TextRedirector(self.text, 'stderr')
 
     def run(self):
-        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method_sel[self.method], self.attacks_sel[self.attack])).start()
+        self.start_button.configure(text='Stop', command=self.stop)
+        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method_sel[self.method], self.attacks_sel[self.attack], self.event)).start()
+
+    def stop(self):
+        self.event.set()
+        self.start_button.configure(text='Start', command=self.run)
+        self.text.insert(END, 'Остановлено.')
 
     def choose_attack(self, choice):
         self.attack = choice
