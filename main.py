@@ -242,7 +242,7 @@ class App(CTk):
             "Дерево принятия решений": DecisionTreeClassifier(),
             "Метод случайного леса": RandomForestClassifier(),
             "Метод опорных векторов": SVC(gamma='auto'),
-            "Наивная гауссовская классификация": GaussianNB()
+            "Наивная байесовская классификация": GaussianNB()
         }
 
         CTkLabel(self, text='Выбор атаки:').grid(row=0, column=1)
