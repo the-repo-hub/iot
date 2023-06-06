@@ -19,7 +19,7 @@ class IOT:
 
     def __init__(self):
         warnings.filterwarnings('ignore')
-        self.DATASET_DIRECTORY = '/home/debian/PycharmProjects/iot/'
+        self.DATASET_DIRECTORY = '/home/user/PycharmProjects/iot/'
 
         self.DDoS = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
                      'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
@@ -189,6 +189,8 @@ class TextRedirector:
 
     def write(self, str):
         self.widget.configure(state="normal")
+        if self.tag == "stderr":
+            self.widget.insert(1.0, str)
         self.widget.insert(END, str)
         self.widget.configure(state="disabled")
 
@@ -263,7 +265,7 @@ class App(CTk):
         self.text.grid(row=0, column=0, rowspan=5)
         self.redirect = TextRedirector(self.text, "stdout")
         sys.stdout = self.redirect
-        sys.stderr = TextRedirector(self.text, 'stderr')
+        sys.stderr = TextRedirector(self.text, "stderr")
 
     def run(self):
         self.start_button.configure(text='Stop', command=self.stop)
@@ -272,7 +274,7 @@ class App(CTk):
     def stop(self):
         self.event.set()
         self.start_button.configure(text='Start', command=self.run)
-        self.text.insert(END, 'Остановлено.')
+        print("Остановлено.")
 
     def choose_attack(self, choice):
         self.attack = choice
