@@ -19,7 +19,7 @@ dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-
 
 def main():
     path = os.path.dirname(os.path.realpath(__file__)) # заменить
-    df_sets = [k for k in os.listdir(path) if k.endswith('.csv')]
+    df_sets = [os.path.join(path, k) for k in os.listdir(path) if k.endswith('.csv')]
     calc_dct = {}
     for file in tqdm(df_sets):
         label_df = pandas.read_csv(file, usecols=['label'])
