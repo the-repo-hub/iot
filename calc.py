@@ -1,4 +1,3 @@
-import csv
 from tqdm import tqdm
 import os
 import pandas
@@ -25,7 +24,7 @@ def main():
     for file in tqdm(df_sets):
         label_df = pandas.read_csv(file, usecols=['label'])
         arr = label_df['label'].to_numpy()
-        for num, attack in enumerate(arr):
+        for attack in arr:
             attack_type = dict_7classes[attack]
             if not calc_dct.get(attack_type):
                 calc_dct[attack_type] = 1
