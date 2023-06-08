@@ -11,7 +11,6 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
 from customtkinter import *
-import sys
 import threading
 
 
@@ -19,7 +18,7 @@ class IOT:
 
     def __init__(self):
         warnings.filterwarnings('ignore')
-        self.DATASET_DIRECTORY = '/home/user/PycharmProjects/iot/'
+        self.DATASET_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
         self.DDoS = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
                      'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
