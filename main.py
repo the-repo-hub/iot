@@ -141,7 +141,7 @@ class IOT:
             scaler.fit(pd.read_csv(self.DATASET_DIRECTORY + train_set)[self.X_columns])
         return scaler
 
-    def scanning2(self, model, mass, event: threading.Event):
+    def scanning2(self, model, mass, event: threading.Event, text):
         y_pred = []
         y_test = []
         scaler = StandardScaler()
@@ -169,33 +169,16 @@ class IOT:
             y_test += list(d_test[self.y_column].values)
             y_pred += list(model.predict(d_test[self.X_columns]))
 
-        self.metrics(model, y_pred, y_test)
+        self.metrics(model, y_pred, y_test, text)
 
-    def metrics(self, model, y_pred, y_test):
-
-        print(f"##### {model} #####")
-        print('confusion matrix:\n', confusion_matrix(y_pred, y_test))
-        print('accuracy_score: ', accuracy_score(y_pred, y_test))
-        print('recall_score: ', recall_score(y_pred, y_test, average='macro'))
-        print('precision_score: ', precision_score(y_pred, y_test, average='macro'))
-        print('f1_score: ', f1_score(y_pred, y_test, average='macro'))
-
-
-class TextRedirector:
-
-    def __init__(self, widget, tag="stdout"):
-        self.widget = widget
-        self.tag = tag
-
-    def write(self, str):
-        self.widget.configure(state="normal")
-        if self.tag == "stderr":
-            self.widget.insert(1.0, str)
-        self.widget.insert(END, str)
-        self.widget.configure(state="disabled")
-
-    def flush(self):
-        pass
+    def metrics(self, model, y_pred, y_test, text):
+        txt = f"##### {model} #####\n" \
+              f"confusion matrix: {confusion_matrix(y_pred, y_test)}\n" \
+              f"accuracy_score: {accuracy_score(y_pred, y_test)}\n" \
+              f"recall_score: {recall_score(y_pred, y_test, average='macro')}\n" \
+              f"precision_score: {precision_score(y_pred, y_test, average='macro')}\n" \
+              f"f1_score: {f1_score(y_pred, y_test, average='macro')}"
+        text.insert(END, txt)
 
 
 class App(CTk):
@@ -263,18 +246,16 @@ class App(CTk):
 
         self.text = CTkTextbox(self, width=400, height=400)
         self.text.grid(row=0, column=0, rowspan=5)
-        self.redirect = TextRedirector(self.text, "stdout")
-        sys.stdout = self.redirect
-        sys.stderr = TextRedirector(self.text, "stderr")
 
     def run(self):
         self.start_button.configure(text='Stop', command=self.stop)
-        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method_sel[self.method], self.attacks_sel[self.attack], self.event)).start()
+        threading.Thread(target=self.iot.scanning2, daemon=True, args=(self.method_sel[self.method], self.attacks_sel[self.attack], self.event, self.text)).start()
+        self.text.insert(END, 'Тестирование...')
 
     def stop(self):
         self.event.set()
         self.start_button.configure(text='Start', command=self.run)
-        print("Остановлено.")
+        self.text.insert(END, 'Остановлено.')
 
     def choose_attack(self, choice):
         self.attack = choice
